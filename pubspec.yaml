@@ -1,0 +1,36 @@
+name: my_first_app
+description: A new Flutter project.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider:
+  file_picker:
+  cupertino_icons:
+  http:
+  mysql1:
+  flutter_bcrypt:
+  shared_preferences:
+  font_awesome_flutter: ^10.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.9.2  # Add the flutter_launcher_icons package here
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png  # Ensure your logo is located here
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "my_first_app\assets"  # Path to your logo file
