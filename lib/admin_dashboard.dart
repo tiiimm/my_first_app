@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:my_first_app/main.dart';
+import 'main.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class AdminDashboard extends StatefulWidget {
+  const AdminDashboard({super.key});
+
   @override
-  _AdminDashboardState createState() => _AdminDashboardState();
+  AdminDashboardState createState() => AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard> {
+class AdminDashboardState extends State<AdminDashboard> {
   int appointmentCount = 0;
   int pendingRequestsCount = 0;
   int confirmRequestsCount = 0;

@@ -2,44 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'db_connection.dart'; // Ensure this import points to your DatabaseHelper class
 
-class ViewPatientPage extends StatelessWidget {
-  final int userId;
+class ViewPatientPage extends StatefulWidget {
+  const ViewPatientPage({super.key});
 
-  ViewPatientPage({required this.userId});
 
-  Future<String?> _getUsername() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('username');
+  @override
+  ViewPatientPageState createState() => ViewPatientPageState();
+}
+
+class ViewPatientPageState extends State<ViewPatientPage> {
+  late SharedPreferences sharedPreferences;
+  late String username;
+  late int userId;
+
+  @override
+  void initState() {
+    super.initState();
+    configure();
+  }
+
+  configure() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    setState(() {
+      username = sharedPreferences.getString('username')!;
+      userId = sharedPreferences.getInt('userId')!;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 238, 240, 241),
+      backgroundColor: const Color.fromARGB(255, 238, 240, 241),
       appBar: AppBar(
-        title: FutureBuilder<String?>(
-          future: _getUsername(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Text('Loading...');
-            } else if (snapshot.hasError) {
-              return Text('Error');
-            } else {
-              return Text(snapshot.data != null ? 'View Patient - ${snapshot.data}' : 'View Patient');
-            }
-          },
-        ),
-        backgroundColor: Color(0xFF6A1B9A),
+        title: Text('View Patient - $username'),
+        backgroundColor: const Color(0xFF6479ba),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchPatientRecords(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error loading patient records. Please try again.'));
+            return const Center(child: Text('Error loading patient records. Please try again.'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No records found.'));
+            return const Center(child: Text('No records found.'));
           } else {
             return _buildViewPatientBody(snapshot.data!);
           }
@@ -77,7 +83,7 @@ class ViewPatientPage extends StatelessWidget {
                 'Appointment: ${record['date_appoint']} at ${record['available_time']}',
               ),
               isThreeLine: true,
-              trailing: Icon(Icons.pets, color: Color(0xFF6A1B9A)),
+              trailing: const Icon(Icons.pets, color: Color(0xFF6479ba)),
             ),
           );
         },
@@ -91,7 +97,7 @@ class ViewPatientPage extends StatelessWidget {
       onTap: (index) {
         _onTabTapped(index, context);
       },
-      items: [
+      items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.dashboard),
           label: 'Dashboard',
@@ -109,7 +115,7 @@ class ViewPatientPage extends StatelessWidget {
           label: 'Queue Status',
         ),
       ],
-      selectedItemColor: Color(0xFF6A1B9A),
+      selectedItemColor: const Color(0xFF6479ba),
       unselectedItemColor: Colors.grey,
       backgroundColor: Colors.white,
       elevation: 10,

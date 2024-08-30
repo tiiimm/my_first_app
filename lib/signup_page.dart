@@ -103,7 +103,7 @@ class _SignUpPageState extends State<SignUpPage> {
           if (_isLoading)
             Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6A1B9A)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6479ba)),
               ),
             ),
         ],
@@ -124,7 +124,7 @@ class _SignUpPageState extends State<SignUpPage> {
           'Pawssible',
           style: TextStyle(
             fontSize: 28,
-            color: Color(0xFF6A1B9A),
+            color: Color(0xFF6479ba),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -227,7 +227,7 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
       style: ElevatedButton.styleFrom(
         minimumSize: Size(double.infinity, 50), // Full-width button
-        backgroundColor: Color(0xFF6A1B9A),
+        backgroundColor: Color(0xFF6479ba),
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8.0),
@@ -245,7 +245,7 @@ class _SignUpPageState extends State<SignUpPage> {
         child: Text(
           "Already have an account? Log in",
           style: TextStyle(
-            color: Color(0xFF6A1B9A),
+            color: Color(0xFF6479ba),
           ),
         ),
       ),

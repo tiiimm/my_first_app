@@ -23,7 +23,7 @@ class _QueueingPageState extends State<QueueingPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Queueing'),
-        backgroundColor: Color(0xFF6A1B9A),
+        backgroundColor: Color(0xFF6479ba),
       ),
       body: ListView.builder(
         itemCount: queue.length,

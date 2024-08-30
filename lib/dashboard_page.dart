@@ -1,307 +1,329 @@
 import 'package:flutter/material.dart';
-import 'package:my_first_app/main.dart';
+import 'package:intl/intl.dart';
+import 'package:mysql1/mysql1.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'db_connection.dart';
+import 'pet_form.dart';
 
 class DashboardPage extends StatefulWidget {
+  const DashboardPage({super.key});
+
   @override
-  _DashboardPageState createState() => _DashboardPageState();
+  DashboardPageState createState() => DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
-  int _currentIndex = 0;
+class DashboardPageState extends State<DashboardPage> {
+  late SharedPreferences sharedPreferences;
+  late int userId;
+  List appointmentTypes = [
+    {'label': 'Consultation', 'icon': Icons.medical_services, 'color': const Color(0xFFF45B69)},
+    {'label': 'Vaccination', 'icon': Icons.vaccines, 'color': const Color(0xFF90BEDE)},
+    {'label': 'Deworming', 'icon': Icons.medication, 'color': const Color(0xFF2A9D8F)},
+    {'label': 'Surgery', 'icon': Icons.healing, 'color': const Color(0xFFCCA43B)},
+    {'label': 'Pet Supplies', 'icon': Icons.store, 'color': const Color(0xFFF7AF9D)},
+  ];
+  List pets = [];
+  List appointments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    configure();
+  }
+
+  configure() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    setState(() {
+      userId = sharedPreferences.getInt('userId')!;
+    });
+    loadData();
+  }
+
+  loadData() {
+    final dbHelper = DatabaseHelper();
+    late final MySqlConnection? conn;
+    dbHelper.connect().then((value){
+      conn = dbHelper.connection;
+      dbHelper.loadingDialog(context);
+
+      conn!.query('SELECT * FROM pets WHERE owner_id= ?', [userId]).then((response) async {
+        List temPets = [];
+        for (var pet in response) {
+          String age = computeDogAge(pet.fields['bdate'].toString());
+          pet.fields.addAll({'age': age});
+          temPets.add(pet.fields);
+        }
+
+        setState(() {
+          pets = temPets;
+        });
+      });
+
+      conn!.query('SELECT appointments.*, pets.pet_name FROM appointments '
+        'JOIN pets ON appointments.pet_id = pets.id '
+        'JOIN users ON pets.owner_id = users.id '
+        'WHERE users.id = ? '
+        'ORDER BY appointments.id DESC LIMIT 3;', [userId]).then((response) async {
+        List tempAppointments = [];
+        for (var appointment in response) {
+          tempAppointments.add(appointment.fields);
+        }
+
+        setState(() {
+          appointments = tempAppointments;
+        });
+        print(appointments);
+        Navigator.pop(context);
+      });
+    });
+  }
+
+  String computeDogAge(String birthDateString) {
+    DateTime birthDate = DateTime.parse(birthDateString);
+    DateTime currentDate = DateTime.now();
+    int years = currentDate.year - birthDate.year;
+    int months = currentDate.month - birthDate.month;
+    int days = currentDate.day - birthDate.day;
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    else if (months == 0 && currentDate.day - birthDate.day < 0) {
+      years--;
+      months += 11;
+    }
+    
+    String yearPart = years == 1 ? '$years yr' : '$years yrs';
+    String monthPart = months == 1 ? '$months month' : '$months months';
+    String dayPart = days == 1 ? '$days day' : '$days days';
+
+    if (years == 0 && months > 0) {
+      return monthPart;
+    }
+    else if (years == 0 && months == 0){
+      return dayPart;
+    }
+
+    return '$yearPart and $monthPart';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final String? ownerName = sharedPreferences.getString('username');
-    final int? ownerId = sharedPreferences.getInt('userId');
-
-    return Scaffold(
-      backgroundColor: Color(0xFFF3E5F5),
-      appBar: _buildAppBar(),
-      body: _buildBody(context, ownerName, ownerId),
-      bottomNavigationBar: _buildBottomNavigationBar(context, ownerName, ownerId),
-    );
-  }
-
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: Text(
-        'Dashboard',
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-      centerTitle: true,
-      backgroundColor: Color(0xFF6A1B9A),
-      automaticallyImplyLeading: false,
-      toolbarHeight: 70,
-      actions: [
-        PopupMenuButton<String>(
-          onSelected: (value) {
-            if (value == 'my_account') {
-              _navigateToAccount(context);
-            } else if (value == 'logout') {
-              _logout(context);
-            }
-          },
-          itemBuilder: (BuildContext context) {
-            return [
-              PopupMenuItem<String>(
-                value: 'my_account',
-                child: Row(
-                  children: [
-                    Icon(Icons.account_circle, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('My Account'),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-            ];
-          },
-          icon: Icon(Icons.more_vert, color: Colors.white),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBody(BuildContext context, String? ownerName, int? ownerId) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+    return SingleChildScrollView(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWelcomeCard(ownerName),
-          SizedBox(height: 20),
-          Expanded(
-            child: ListView(
+          Container(
+            margin: const EdgeInsets.all(10),
+            height: 140,
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(6)),
+              image: DecorationImage(image: AssetImage('assets/banner1.jpg'), fit: BoxFit.fill)
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(10),
+            child: Align(
+              alignment: Alignment.centerLeft, 
+              child:Text(
+                'SERVICES', 
+                textAlign: TextAlign.start, 
+                style: TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold
+                ),
+              )
+            )
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildDashboardCard(
-                  icon: Icons.pets,
-                  title: 'Make Appointments',
-                  subtitle: 'Schedule a visit for your pet',
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/appointments',
-                      arguments: {'userId': ownerId},
-                    );
-                  },
-                ),
-                _buildDashboardCard(
-                  icon: Icons.medical_services,
-                  title: 'View my Records',
-                  subtitle: 'Access medical records of your pets',
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/patient_records',
-                      arguments: {'userId': ownerId},
-                    );
-                  },
-                ),
-                _buildDashboardCard(
-                  icon: Icons.queue,
-                  title: 'Queue Status',
-                  subtitle: 'Check the current queue status',
-                  onTap: () {
-                    _navigateToQueueStatus(context, ownerName);
-                  },
-                ),
+                for (var type in appointmentTypes)
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      height: 60,
+                      width: 60,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        color: type['color']
+                      ),
+                      child: Icon(type['icon'], color: Colors.white,),
+                    ),
+                    Text(
+                      type['label'],
+                      style: const TextStyle(
+                        fontSize: 12
+                      ),
+                    )
+                  ]
+                )
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWelcomeCard(String? ownerName) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Color(0xFFCE93D8),
-        borderRadius: BorderRadius.circular(20.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6.0,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Color(0xFFAB47BC),
-            child: Icon(
-              Icons.person,
-              size: 35,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              'Hello, $ownerName! 😊',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDashboardCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16.0),
-        decoration: BoxDecoration(
-          color: Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(20.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8.0,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: Color(0xFF8E24AA),
-                child: Icon(
-                  icon,
-                  size: 30,
-                  color: Colors.white,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'MY PETS', 
+                  textAlign: TextAlign.start, 
+                  style: TextStyle(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.bold
+                  ),
                 ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6A1B9A),
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6A1B9A),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Color(0xFF6A1B9A),
-              ),
-            ],
+                IconButton(
+                  style: ButtonStyle(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: WidgetStateProperty.all(EdgeInsets.zero),
+                    elevation: WidgetStateProperty.all(0)
+                  ),
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (BuildContext context) => const PetForm())).then((value)=>loadData());
+                  },
+                  icon: const Icon(Icons.add,)
+                )
+              ],
+            )
           ),
-        ),
+          if (pets.isEmpty)
+          const Text('No pets added yet')
+          else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  for (var pet in pets)
+                  Container(
+                    height: 200,
+                    width: 140,
+                    margin: EdgeInsets.only(left: pets.indexOf(pet)==0?0:10),
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Color(0xFFCDD4F3)
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: pet['image'] != null?NetworkImage(pet['image']):const AssetImage('assets/dog.png'),
+                          minRadius: 50,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 14),
+                          child: Row(
+                            children: [
+                              Text(
+                                pet['pet_name'],
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16
+                                ),
+                              ),
+                              Icon(
+                                pet['sex'] == 'Male'?Icons.male:Icons.female,
+                                size: 20,
+                              )
+                            ],
+                          )
+                        ),
+                        Text(
+                          pet['age'],
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600]
+                          ),
+                        ),
+                        Text(
+                          pet['breed'],
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600]
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ]
+              ),
+            )
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(10, 20, 10, 10),
+            child: Align(
+              alignment: Alignment.centerLeft, 
+              child:Text(
+                'RECENT APPOINTMENTS', 
+                textAlign: TextAlign.start, 
+                style: TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold
+                ),
+              )
+            )
+          ),
+          // if (appointments.isEmpty)
+          // const Text('No appointments in the record yet')
+          // else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: Container(
+              height: 130,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+                // border: Border.all(),
+                color: Colors.white
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowHeight: 40,
+                      dataRowMinHeight: 26,
+                      dataRowMaxHeight: 26,
+                      columns: const [
+                        DataColumn(label: Text('Date')),
+                        DataColumn(label: Text('Type')),
+                        DataColumn(label: Text('Pet')),
+                        DataColumn(label: Text('Status')),
+                      ],
+                      rows: [
+                        for (var appointment in appointments)
+                        DataRow(cells: [
+                          DataCell(Text(DateFormat('yyyy-MM-dd').format(appointment['date']))),
+                          DataCell(Text(appointment['type'])),
+                          DataCell(Text(appointment['pet_name'])),
+                          DataCell(Text(appointment['status'])),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  if (appointments.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Text('No records yet', textAlign: TextAlign.center,),
+                  )
+                ]
+              )
+            )
+          )
+        ],
       ),
     );
-  }
-
-  BottomNavigationBar _buildBottomNavigationBar(BuildContext context, String? ownerName, int? ownerId) {
-    return BottomNavigationBar(
-      currentIndex: _currentIndex,
-      onTap: (index) {
-        setState(() {
-          _currentIndex = index;
-        });
-        _onTabTapped(index, context, ownerName, ownerId);
-      },
-      items: [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.pets),
-          label: 'Appointments',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.medical_services),
-          label: 'Patient Records',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.queue),
-          label: 'Queue Status',
-        ),
-      ],
-      selectedItemColor: Color(0xFF6A1B9A),
-      unselectedItemColor: Colors.grey,
-      backgroundColor: Colors.white,
-      elevation: 10,
-      type: BottomNavigationBarType.fixed,
-    );
-  }
-
-  void _onTabTapped(int index, BuildContext context, String? ownerName, int? ownerId) {
-    switch (index) {
-      case 0:
-        break; // Current page
-      case 1:
-        Navigator.pushNamed(context, '/appointments', arguments: {'userId': ownerId});
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/patient_records', arguments: {'userId': ownerId});
-        break;
-      case 3:
-        _navigateToQueueStatus(context, ownerName);
-        break;
-    }
-  }
-
-  void _navigateToAccount(BuildContext context) {
-    Navigator.pushNamed(context, '/my_account');
-  }
-
-  void _navigateToQueueStatus(BuildContext context, String? ownerName) {
-    Navigator.pushNamed(
-      context,
-      '/queueStatus',
-      arguments: ownerName,
-    );
-  }
-
-  void _logout(BuildContext context) {
-    sharedPreferences.clear();
-    Navigator.pushReplacementNamed(context, '/');
   }
 }

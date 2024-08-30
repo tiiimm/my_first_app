@@ -44,7 +44,7 @@ class _PatientRecordListPageState extends State<PatientRecordListPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Patient Record List'),
-        backgroundColor: Color(0xFF6A1B9A),
+        backgroundColor: Color(0xFF6479ba),
       ),
       body: ListView.builder(
         itemCount: patientRecords.length,
@@ -55,7 +55,7 @@ class _PatientRecordListPageState extends State<PatientRecordListPage> {
             child: ListTile(
               title: Text(patientRecords[index]['name']!),
               subtitle: Text('ID: ${patientRecords[index]['id']}'),
-              trailing: Icon(Icons.info, color: Color(0xFF6A1B9A)),
+              trailing: Icon(Icons.info, color: Color(0xFF6479ba)),
               onTap: () => _showPatientDetails(patientRecords[index]),
             ),
           );

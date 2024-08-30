@@ -1,73 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:my_first_app/login_page.dart';
-import 'package:my_first_app/signup_page.dart';
-import 'package:my_first_app/dashboard_page.dart';
-import 'package:my_first_app/admin_dashboard.dart';
-import 'package:my_first_app/pet_form.dart';
-import 'package:my_first_app/view_patient.dart';
-import 'package:my_first_app/queue_status_page.dart';
-import 'package:my_first_app/appointment_calendar_page.dart';
-import 'package:my_first_app/pending_requests_page.dart';
-import 'package:my_first_app/confirm_requests_page.dart';
-import 'package:my_first_app/queueing_page.dart';
-import 'package:my_first_app/patient_record_list_page.dart';
+import 'db_connection.dart';
+import 'home_page.dart';
+import 'login_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 late SharedPreferences sharedPreferences;
-String initialRoute = '/';
+dynamic initialRoute = const LoginPage();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   sharedPreferences = await SharedPreferences.getInstance();
 
   // Check if user is logged in and set the initial route based on role
+  // Contains Key checks if you set a value for the key you're accessing
+  // getString will get the value of the key
+  // in this case, the key is username
+  // sharedPreferences.getString('username')!.isNotEmpty is checking if the value of username is not empty
+  // sharedPreferences is used when you want the app to remember an information even after closing it
   if (sharedPreferences.containsKey('username') && sharedPreferences.getString('username')!.isNotEmpty) {
-    if (sharedPreferences.getString('role') == 'Admin') {
-      initialRoute = '/adminDashboard';
-    } else if (sharedPreferences.getString('role') == 'Customer') {
-      initialRoute = '/dashboard';
-    }
+    initialRoute = const HomePage();
+    // if (sharedPreferences.getString('role') == 'Admin') {
+    //   initialRoute = AdminDashboard();
+    // } else if (sharedPreferences.getString('role') == 'Customer') {
+    //   initialRoute = DashboardPage();
+    // }
   }
 
-  runApp(PawssibleApp());
+  runApp(const PawssibleApp());
 }
 
 class PawssibleApp extends StatelessWidget {
+  const PawssibleApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final String loggedInUserName = sharedPreferences.getString('username') ?? 'Unknown';
-    final int loggedInUserId = sharedPreferences.getInt('userId') ?? 0;
-
-    return MaterialApp(
-      title: 'Pawssible Login',
-      theme: ThemeData(
-        primaryColor: Color(0xFF6A1B9A),
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          secondary: Color(0xFF4A0072),
+    DatabaseHelper().createTables(); // just run this once start to create the tables and seed
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1)),
+      child: MaterialApp(
+        title: 'Pawssible Login',
+        theme: ThemeData(
+          primaryColor: const Color(0xFF6479ba),
+          colorScheme: ColorScheme.fromSwatch().copyWith(
+            secondary: const Color(0xFFFF99F2),
+          ),
+          visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      initialRoute: initialRoute,
-      routes: {
-        '/': (context) => LoginPage(),
-        '/signup': (context) => SignUpPage(),
-        '/dashboard': (context) => DashboardPage(),
-        '/adminDashboard': (context) => AdminDashboard(),
-        '/appointments': (context) => PetForm(
-          loggedInUserName: loggedInUserName,
-          loggedInUserId: loggedInUserId,
-        ),
-        '/patient_records': (context) => ViewPatientPage(
-          userId: loggedInUserId,
-        ),
-        '/queueStatus': (context) => QueueStatusPage(),
-        '/appointmentCalendar': (context) => AppointmentCalendarPage(),
-        '/pendingRequests': (context) => PendingRequestsPage(),
-        '/confirmRequests': (context) => ConfirmRequestsPage(),
-        '/queueing': (context) => QueueingPage(),
-        '/patientRecordList': (context) => PatientRecordListPage(),
-      },
-      debugShowCheckedModeBanner: false,
+        home: initialRoute,
+        debugShowCheckedModeBanner: false,
+      )
     );
   }
 }

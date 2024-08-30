@@ -13,7 +13,7 @@ class PatientRecordListPage extends StatelessWidget {
       backgroundColor: Color.fromARGB(255, 238, 240, 241),
       appBar: AppBar(
         title: Text('Patient Records'),
-        backgroundColor: Color(0xFF6A1B9A),
+        backgroundColor: Color(0xFF6479ba),
       ),
       body: Center(
         child: Text('Displaying records for user ID: $userId'),

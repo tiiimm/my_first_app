@@ -28,7 +28,7 @@ class _ConfirmRequestsPageState extends State<ConfirmRequestsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Confirm Requests'),
-        backgroundColor: Color(0xFF6A1B9A),
+        backgroundColor: Color(0xFF6479ba),
       ),
       body: ListView.builder(
         itemCount: requests.length,
@@ -45,7 +45,7 @@ class _ConfirmRequestsPageState extends State<ConfirmRequestsPage> {
                       onPressed: () => _confirmRequest(request['id']),
                       child: Text('Confirm'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF6A1B9A),
+                        backgroundColor: Color(0xFF6479ba),
                       ),
                     ),
             ),

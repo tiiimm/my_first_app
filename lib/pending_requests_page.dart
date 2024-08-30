@@ -28,7 +28,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Pending Requests'),
-        backgroundColor: Color(0xFF6A1B9A),
+        backgroundColor: Color(0xFF6479ba),
       ),
       body: ListView.builder(
         itemCount: requests.length,

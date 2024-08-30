@@ -1,40 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'db_connection.dart';
 
 class PetForm extends StatefulWidget {
-  final String loggedInUserName;
-  final int loggedInUserId;
+  const PetForm({super.key});
 
-  PetForm({required this.loggedInUserName, required this.loggedInUserId});
 
   @override
-  _PetFormState createState() => _PetFormState();
+  PetFormState createState() => PetFormState();
 }
 
-class _PetFormState extends State<PetForm> {
+class PetFormState extends State<PetForm> {
   final _formKey = GlobalKey<FormState>();
+  late SharedPreferences sharedPreferences;
+  late String username;
+  late int userId;
 
   final TextEditingController petNameController = TextEditingController();
   final TextEditingController breedController = TextEditingController();
   final TextEditingController speciesController = TextEditingController();
   final TextEditingController sexController = TextEditingController();
   final TextEditingController birthdateController = TextEditingController();
-  final TextEditingController ageController = TextEditingController();
   final TextEditingController colorController = TextEditingController();
   final TextEditingController markingsController = TextEditingController();
-  final TextEditingController contactNoController = TextEditingController();
-  final TextEditingController appointmentDateController = TextEditingController();
   DateTime? selectedDate;
-  DateTime? selectedAppointmentDate;
-  final List<String> availableTimes = [
-    '09:00 AM - 10:00 AM',
-    '10:00 AM - 11:00 AM',
-    '11:00 AM - 12:00 PM',
-    '01:00 PM - 02:00 PM',
-    '02:00 PM - 03:00 PM',
-    '03:00 PM - 04:00 PM',
-  ];
-  String? selectedAvailableTime;
+  // final List<String> availableTimes = [
+  //   '09:00 AM - 10:00 AM',
+  //   '10:00 AM - 11:00 AM',
+  //   '11:00 AM - 12:00 PM',
+  //   '01:00 PM - 02:00 PM',
+  //   '02:00 PM - 03:00 PM',
+  //   '03:00 PM - 04:00 PM',
+  // ];
+  // String? selectedAvailableTime;
+
+  @override
+  void initState() {
+    super.initState();
+    configure();
+  }
+
+  configure() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    setState(() {
+      username = sharedPreferences.getString('username')!;
+      userId = sharedPreferences.getInt('userId')!;
+    });
+  }
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller, {DateTime? initialDate}) async {
     final DateTime? picked = await showDatePicker(
@@ -47,8 +59,8 @@ class _PetFormState extends State<PetForm> {
       setState(() {
         if (controller == birthdateController) {
           selectedDate = picked;
-        } else if (controller == appointmentDateController) {
-          selectedAppointmentDate = picked;
+        // } else if (controller == appointmentDateController) {
+        //   selectedAppointmentDate = picked;
         }
         controller.text = "${picked.toLocal()}".split(' ')[0];
       });
@@ -57,134 +69,103 @@ class _PetFormState extends State<PetForm> {
 
   void _submitForm() async {
     if (_formKey.currentState?.validate() ?? false) {
-      await DatabaseHelper().insertPetData(
-        ownerId: widget.loggedInUserId,
-        petName: petNameController.text,
-        breed: breedController.text,
-        species: speciesController.text,
-        sex: sexController.text,
-        age: int.parse(ageController.text),
-        birthdate: selectedDate ?? DateTime.now(),
-        color: colorController.text,
-        markings: markingsController.text.isNotEmpty ? markingsController.text : null,
-        contact: contactNoController.text,
-        dateAppoint: selectedAppointmentDate ?? DateTime.now(),
-        availableTime: selectedAvailableTime ?? '',
-      );
+      final dbHelper = DatabaseHelper();
+      dbHelper.connect();
+      final conn = dbHelper.connection;
+      dbHelper.loadingDialog(context);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Pet data submitted successfully!')),
-      );
-      Navigator.pop(context);
+      conn!.query('INSERT INTO pets (owner_id, pet_name, breed, species, sex, bdate, color, markings) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [userId, petNameController.text, breedController.text, speciesController.text, sexController.text, birthdateController.text, colorController.text, markingsController.text]).then((response) async {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pet data submitted successfully!')),
+        );
+        Navigator.pop(context);
+        Navigator.pop(context);
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF3E5F5),
-      appBar: AppBar(
-        title: Text(
-          '${widget.loggedInUserName}\'s Pet Form',
-          style: TextStyle(color: Colors.white),
+      appBar:AppBar(
+        title: const Text(
+          'Pawssible Solutions',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-        backgroundColor: Color(0xFF6A1B9A),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF6479ba),
+        toolbarHeight: 70,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildTextField(petNameController, 'Pet Name'),
-                            _buildTextField(breedController, 'Breed'),
-                            _buildTextField(speciesController, 'Species'),
-                            _buildTextField(sexController, 'Sex'),
-                            _buildTextFieldWithDatePicker(
-                              controller: birthdateController,
-                              label: 'Birthdate',
-                              context: context,
-                              selectedDate: selectedDate,
-                            ),
-                            Row(
-                              children: [
-                                Expanded(child: _buildTextField(ageController, 'Age', keyboardType: TextInputType.number)),
-                                SizedBox(width: 10),
-                                Expanded(child: _buildTextField(colorController, 'Color')),
-                              ],
-                            ),
-                            _buildTextField(markingsController, 'Markings (optional)'),
-                            _buildTextField(contactNoController, 'Contact Number'),
-                            _buildTextFieldWithDatePicker(
-                              controller: appointmentDateController,
-                              label: 'Appointment Date',
-                              context: context,
-                              selectedDate: selectedAppointmentDate,
-                            ),
-                            _buildDropdownField(
-                              value: selectedAvailableTime,
-                              label: 'Available Time',
-                              items: availableTimes,
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  selectedAvailableTime = newValue;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Spacer(),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(
-                        child: ElevatedButton(
-                          onPressed: _submitForm,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF6A1B9A),
-                            padding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 28.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                          ),
-                          child: Text(
-                            'Submit',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(10),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: CircleAvatar(
+                  backgroundImage: AssetImage('assets/dog.png'),
+                  radius: 60,
                 ),
               ),
-            ),
-          );
-        },
+              _buildTextField(petNameController, 'Pet Name'),
+              _buildTextField(breedController, 'Breed'),
+              _buildTextField(speciesController, 'Species'),
+              _buildTextField(sexController, 'Sex'),
+              _buildTextFieldWithDatePicker(
+                controller: birthdateController,
+                label: 'Birthdate',
+                context: context,
+                selectedDate: selectedDate,
+              ),
+              Row(
+                children: [
+                  Expanded(child: _buildTextField(colorController, 'Color')),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildTextField(markingsController, 'Markings (optional)', inputAction: TextInputAction.done)),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top:10),
+                child: Center(
+                  child: ElevatedButton(
+                    onPressed: _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6479ba),
+                      padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 28.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    child: const Text(
+                      'Submit',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextField(TextEditingController controller, String label, {TextInputType keyboardType = TextInputType.text, TextInputAction inputAction = TextInputAction.next}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 10),
       child: TextFormField(
         controller: controller,
+        textInputAction: inputAction,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Color(0xFF6A1B9A)),
+          labelStyle: const TextStyle(color: Color(0xFF6479ba)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
           ),
@@ -192,7 +173,7 @@ class _PetFormState extends State<PetForm> {
           fillColor: Colors.white,
         ),
         keyboardType: keyboardType,
-        validator: (value) {
+        validator: controller == markingsController?null: (value) {
           if (value == null || value.isEmpty) {
             return 'Please enter $label';
           }
@@ -209,58 +190,26 @@ class _PetFormState extends State<PetForm> {
     DateTime? selectedDate,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 10),
       child: TextFormField(
         controller: controller,
+        readOnly: true,
+        onTap: (){
+          _selectDate(context, controller, initialDate: selectedDate).then((onValue)=>FocusManager.instance.primaryFocus?.unfocus());
+        },
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Color(0xFF6A1B9A)),
+          labelStyle: const TextStyle(color: Color(0xFF6479ba)),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12.0),
           ),
           filled: true,
           fillColor: Colors.white,
           suffixIcon: IconButton(
-            icon: Icon(Icons.calendar_today, color: Color(0xFF6A1B9A)),
+            icon: const Icon(Icons.calendar_today, color: Color(0xFF6479ba)),
             onPressed: () => _selectDate(context, controller, initialDate: selectedDate),
           ),
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please select $label';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-
-  Widget _buildDropdownField({
-    required String? value,
-    required String label,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: Color(0xFF6A1B9A)),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          filled: true,
-          fillColor: Colors.white,
-        ),
-        items: items.map((String item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item),
-          );
-        }).toList(),
-        onChanged: onChanged,
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Please select $label';
